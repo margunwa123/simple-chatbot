@@ -27,10 +27,18 @@ class DialogflowQueryWebHook {
     return this.messages.find((el) => el.id === id);
   }
 
+  getLastMessage() {
+    return this.messages[this.messages.length - 1];
+  }
+
   deleteMessageById(id: string) {
     const deletedMessage = this.messages.find((message) => message.id === id);
     this.messages = this.messages.filter((message) => message.id !== id);
     return deletedMessage;
+  }
+
+  getContexts() {
+    return this.contexts;
   }
 
   async detectIntent(
@@ -139,6 +147,11 @@ class DialogflowQueryWebHook {
       lifespanCount,
       parameters,
     };
+  }
+  static createWebhook() {
+    const projectId = process.env.projectId || "quickstart-uqes";
+    const sessionId = v4();
+    return new DialogflowQueryWebHook(projectId, sessionId);
   }
 }
 

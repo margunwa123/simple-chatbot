@@ -29,30 +29,25 @@ function App() {
   const [user, setUser] = useState({ name: null, birthdate: null });
   const [userId, setUserId] = useLocalStorage("user-id", null);
 
-  useEffect(() => {
-    async function setUserServerside() {
-      if (!userId) return;
-      try {
-        const res = await axiosInstance.post("/set-user", { id: userId });
-        setUser(res.data);
-      } catch (err) {
-        console.error(err);
-      }
-    }
-    setUserServerside();
-  }, []);
-
   async function sendMessage() {
     addMessage();
     try {
       setPendingState(true);
       const res = await axiosInstance.post("/messages", {
-        text,
-        sender: "self",
-        id: v4(),
+        message: {
+          text,
+          sender: "self",
+          id: v4(),
+        },
+        user: {
+          ...user,
+          id: userId,
+        },
       });
-      setUser(res.data.user);
-      addMessage("bot", res.data.text);
+      if (res.data.user.id !== userId) {
+        setUser(res.data.user);
+      }
+      addMessage("bot", res.data.message.text, res.data.message.id);
     } catch (err) {
       console.error(err);
     }
@@ -60,21 +55,12 @@ function App() {
     textRef.current.focus();
   }
 
-  function addMessage(sender = "self", newText = text) {
+  function addMessage(sender = "self", newText = text, id = v4()) {
     if (text.length === 0) return;
     setMessages((oldMessages) => {
-      return [...oldMessages, { sender, text: newText }];
+      return [...oldMessages, { sender, text: newText, id }];
     });
     setText("");
-  }
-
-  async function saveToDatabase() {
-    try {
-      const res = await axios.post("http://localhost:5000/save-user", { user });
-      setUserId(res.data);
-    } catch (err) {
-      console.log(err.message);
-    }
   }
 
   return (
@@ -86,15 +72,7 @@ function App() {
         }}
         className="bg-red-500 btn text-white"
       >
-        Reset
-      </button>
-      <button
-        className={`btn bg-blue-600 text-white ${
-          user.name && user.birthdate && !userId ? "block" : "hidden"
-        }`}
-        onClick={saveToDatabase}
-      >
-        Save me to database!
+        Clear
       </button>
       <div className="flex flex-col bg-white rounded-lg h-full lg:w-2/5 xs:w-full relative">
         <div className="flex p-4 absolute bg-white border-b-2 space-x-4 rounded-tl-lg rounded-tr-lg h-20 top-0 left-0 right-0">

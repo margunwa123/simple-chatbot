@@ -1,12 +1,19 @@
 import { google } from "@google-cloud/dialogflow/build/protos/protos";
 import { Router } from "express";
 import { getHowManyDaysUntilBirthday } from "../util/birthday";
-import { user, queryWebhook } from "../Singleton";
+import { db } from "../database";
+import User from "../model/User";
+import { DialogflowQueryWebHook } from "../QueryWebhook";
+import { v4 } from "uuid";
 
 const router = Router();
+let user: User = new User("", null, null);
+
+const queryWebhook = DialogflowQueryWebHook.createWebhook();
 
 const queryResultCallback = (
-  qresult: google.cloud.dialogflow.v2.IQueryResult
+  qresult: google.cloud.dialogflow.v2.IQueryResult,
+  user: IUser
 ) => {
   const params = qresult.parameters?.fields as {
     [k: string]: google.protobuf.IValue;
@@ -36,14 +43,36 @@ const queryResultCallback = (
   return qresult;
 };
 
+async function getUser(query: { user: IUser }): Promise<User> {
+  if (user.id) {
+    return user;
+  }
+  const new_user = new User("", null, null);
+  if (query.user.id != null) {
+    const doc = await db.collection("user").doc(query.user.id).get();
+    console.log(doc.data());
+    const xdoc = await db.collection("user").doc("heheheheeheh").get();
+    console.log(xdoc.data());
+    if (doc.exists) {
+      new_user.id = query.user.id;
+      new_user.name = doc.data()?.name;
+      new_user.birthdate = new Date(doc.data()?.birthdate._seconds);
+    }
+  } else {
+    // create new user
+    const userId = await new_user.saveToDatabase();
+    new_user.id = userId;
+  }
+  return new_user;
+}
+
 router.post("/", async (req, res) => {
-  const queryResults = await queryWebhook.executeQueries(
-    [req.body],
-    queryResultCallback
-  );
+  const query: { message: Message; user: IUser } = req.body;
+  user = await getUser(query);
+  await queryWebhook.executeQueries([query.message], queryResultCallback);
 
   res.send({
-    text: queryResults[0]?.fulfillmentText,
+    message: queryWebhook.getLastMessage(),
     user,
   });
 });

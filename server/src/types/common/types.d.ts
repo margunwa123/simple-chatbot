@@ -3,3 +3,9 @@ interface Message {
   sender: "self" | "bot";
   id: string;
 }
+
+interface IUser {
+  name: string;
+  birthdate: Date;
+  id: string;
+}

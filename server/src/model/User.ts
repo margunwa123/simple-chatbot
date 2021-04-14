@@ -5,7 +5,11 @@ const userCollection = db.collection("user");
 export default class User {
   public birthdate: Date | null;
 
-  constructor(public name: string, birthdate: string | Date | null) {
+  constructor(
+    public name: string,
+    birthdate: string | Date | null,
+    public id: string | null
+  ) {
     if (typeof birthdate === "string") {
       this.birthdate = new Date(birthdate);
     } else {
@@ -18,7 +22,7 @@ export default class User {
     if (!dbData) {
       throw "id not found";
     }
-    return new User(dbData.name, dbData.birthdate);
+    return new User(dbData.name, dbData.birthdate, id);
   }
 
   async saveToDatabase() {
